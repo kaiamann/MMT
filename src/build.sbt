@@ -124,6 +124,12 @@ lazy val excludedProjects = {
 }
 
 // =================================
+// Scala Features & Library
+// =================================
+
+lazy val scalaParserCombinators = "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.0"
+lazy val scalaXML               = "org.scala-lang.modules" %% "scala-xml" % "1.0.6"
+// =================================
 // Main MMT Projects
 // =================================
 
@@ -171,29 +177,23 @@ lazy val mmt = (project in file("mmt")).
 lazy val api = (project in file("mmt-api")).
   settings(mmtProjectsSettings("mmt-api"): _*).
   dependsOn(tiscaf).
-  dependsOn(lfcatalog).
   settings(
     scalacOptions in Compile ++= Seq("-language:existentials"),
     scalaSource in Compile := baseDirectory.value / "src" / "main",
-    unmanagedJars in Compile += Utils.lib.toJava / "scala-compiler.jar",
-    unmanagedJars in Compile += Utils.lib.toJava / "scala-reflect.jar",
-    unmanagedJars in Compile += Utils.lib.toJava / "scala-parser-combinators.jar",
-    unmanagedJars in Compile += Utils.lib.toJava / "scala-xml.jar",
-    unmanagedJars in Test += Utils.lib.toJava / "scala-compiler.jar",
-    unmanagedJars in Test += Utils.lib.toJava / "scala-reflect.jar",
-    unmanagedJars in Test += Utils.lib.toJava / "scala-parser-combinators.jar",
-    unmanagedJars in Test += Utils.lib.toJava / "scala-xml.jar",
-//    libraryDependencies += "org.scala-lang" % "scala-parser-combinators" % scalaVersion.value % "test",
-    libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value % "test",
-    libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value % "test"
+
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-compiler" % scalaVersion.value,
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+      scalaParserCombinators,
+      scalaXML
+    )
   )
 
 
 // Some foundation-specific extensions. Maintainer: Florian
 lazy val lf = (project in file("mmt-lf")).
   dependsOn(api % "compile -> compile; test -> test").
-  dependsOn(tiscaf).
-  dependsOn(lfcatalog).
+  dependsOn(tiscaf, lfcatalog).
   settings(mmtProjectsSettings("mmt-lf"): _*).
   settings(
 //    libraryDependencies += "org.scala-lang" % "scala-parser-combinators" % "2.12.3" % "test",
@@ -266,16 +266,14 @@ lazy val repl = (project in file("mmt-repl")).
 
 // alignment-based concept browser. Maintainer: Dennis
 lazy val concepts = (project in file("concept-browser")).
-  dependsOn(api).
-  dependsOn(tiscaf).
-  dependsOn(lfcatalog).
+  dependsOn(api, tiscaf).
   settings(mmtProjectsSettings("concept-browser"): _*).
   settings(
     libraryDependencies ++= Seq(
-      "org.ccil.cowan.tagsoup" % "tagsoup" % "1.2"
-    ),
-    unmanagedJars in Compile += Utils.lib.toJava / "scala-xml.jar"
- )
+      "org.ccil.cowan.tagsoup" % "tagsoup" % "1.2",
+      scalaXML
+    )
+  )
 
 // =================================
 // MMT Projects: plugins for working with other languages in MMT
@@ -317,7 +315,7 @@ lazy val pvs = (project in file("mmt-pvs")).
   settings(mmtProjectsSettings("mmt-pvs"): _*)
 
 // plugin for reading metamath
-lazy val mmscala = RootProject(uri("https://github.com/UniFormal/mm-scala#master"))
+lazy val mmscala = RootProject(uri("git://github.com/UniFormal/mm-scala#master"))
 lazy val metamath = (project in file("mmt-metamath")).
   dependsOn(api, lf, mmscala).
   settings(mmtProjectsSettings("mmt-metamath"): _*)
@@ -352,7 +350,7 @@ lazy val oeis = (project in file("mmt-oeis")).
   dependsOn(planetary).
   settings(mmtProjectsSettings("mmt-oeis"): _*).
   settings(
-    unmanagedJars in Compile += Utils.lib.toJava / "scala-parser-combinators.jar"
+    libraryDependencies += scalaParserCombinators
   )
  
 // =================================
@@ -374,15 +372,15 @@ lazy val tiscaf = (project in file("tiscaf")).
 
 // this is a dependency of Twelf if used in conjunction with the module system; it is automatically started when using the Twelf importer
 lazy val lfcatalog = (project in file("lfcatalog")).
-  dependsOn(tiscaf).
   settings(commonSettings("lfcatalog")).
+  dependsOn(tiscaf).
   settings(
     scalaSource in Compile := baseDirectory.value / "src",
     publishTo := Some(Resolver.file("file", Utils.deploy.toJava / " main")),
     deployLFCatalog := {
       assembly in Compile map Utils.deployTo(Utils.deploy / "lfcatalog" / "lfcatalog.jar")
     }.value, 
-    unmanagedJars in Compile += Utils.lib.toJava / "scala-xml.jar"
+    libraryDependencies += scalaXML
   )
 
 // =================================
